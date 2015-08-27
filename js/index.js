@@ -14,31 +14,9 @@
 	var del = require('del');
 	var exec = require('child_process').exec;
 	var spawn = require('child_process').spawn;
-	var fsextra = require('fs-extra');
 	var setting,serviceurl;
 	
     $(function(){
-    	// 解析命令行选项
-		var argv = process.argv.slice(1);
-		var option = {frompath : null,destpath : null};
-		for (var i in argv) {
-		  dialog.showErrorBox(i,argv[i]);
-		  if(i==='0'){
-		      option.frompath = argv[i];
-		  }else if(i==='1'){
-		      option.destpath = argv[i];
-		  }
-		}
-		if(option.frompath&&option.destpath){
-		  dialog.showErrorBox("哈哈","开始替换旧目录");
-		   fsextra.move(option.frompath,option.destpath,{'clobber':true},function(err){
-		       if (err){
-		          dialog.showErrorBox("更新失败","更新下载成功,覆盖旧目录失败!"+err);
-		          console.error(err);
-		       } 
-		    });
-		}
-		 
     	//先读取本地配置文件
     	getSetting();
         //判断网络是否连接
@@ -117,7 +95,7 @@
 
    	  });
     }
-
+    
     var addCloseEvent = function(){
     	window.onbeforeunload = function(e) {
 		    if(!confirm("您正在关闭系统，是否继续？"))
@@ -293,28 +271,31 @@
 	// 4、每次更新成功都需要
 
 	var  checkUpdate = function(){
-		alert(setting.mainfestUrl);
+		console.log(setting.mainfestUrl);
 		request.get(setting.mainfestUrl,function(err, res, data){
 			var sdata = JSON.parse(data);
 			console.log("内核版本信息："+sdata.electron+'@'+setting.electron);
 			console.log("应用程序版本信息："+sdata.version+'@'+setting.version);
 			if(semver.gt(sdata.electron, setting.electron)){
-				updateAllFile(sdata.all_file);
+				alert("您的系统版本太低，无法进行自动更新。到官网重新下载安装！");
+				quitApp();
 			}else if(semver.gt(sdata.version, setting.version)){
-				updateAsarFile(sdata.asar_file);
+				if(confirm("发现新版本程序，是否更新程序？")){
+					updateAsarFile(sdata.asar_file,sdata.version);
+				}
 			}
 		});
 	}
 
-	//全版本更新
-	var updateAllFile = function(allFileUrl){
-		alert(destinationDirectory);
+	//应用程序更新
+	var updateAsarFile = function(asarFileUrl,newversion){
+		console.log(destinationDirectory);
 		//先删除目录
 		exec("rd /s/q "+destinationDirectory,function(err){
 			if(err){
 				console.log("删除目录失败："+err);
 			}
-			downloadApp(allFileUrl,tempdir,function(err,durl){
+			downloadApp(asarFileUrl,tempdir,function(err,durl){
 				console.log("下载完毕:"+durl);
 				//解压
 				unpack(durl,function(err,zipurl){
@@ -322,23 +303,21 @@
 					{
 						console.log(err);
 					}else{
-						console.log("解压完毕："+zipurl);
+					console.log("解压完毕："+zipurl);
 						//启动零时目录中的程序
-						startUpdate(path.join(tempdir,"hzsckj/scerp.exe"),
-									path.join(tempdir,"hzsckj"),
-									jsondir);
+						startUpdate(app.getPath("exe"),
+									path.join(tempdir,"hzsckj/app.asar"),
+									path.join(jsondir,"resources/app.asar"),
+									newversion);
 					}
 				});
 			});
 		});
 	}
-
     //开始启动外部程序
-	var startUpdate = function(newAppPath,fromPath,toPath){
-		run(newAppPath, [fromPath,toPath],{});
-		removeCloseEvent();
-		alert('退出');
-		app.quit();
+	var startUpdate = function(newAppPath,fromPath,toPath,newversion){
+		run(newAppPath, [fromPath,toPath,newversion],{});
+		quitApp();
 	}
     //启动程序
 	function run(path, args, options){
@@ -355,10 +334,11 @@
 	    return sp;
   	}
 
-	//应用程序更新
-	var updateAsarFile = function(asarFileUrl){
+  	var quitApp = function(){
+  		removeCloseEvent();
+		app.quit();
+  	}
 
-	}
 
 	var downloadApp = function(url,ddir,cb){
     	console.log("下载路径:"+url);
@@ -383,7 +363,7 @@
 	    var filename = path.basename(url);
 	    // var destinationPath = path.join(process.cwd()+'\\download', filename);
 	    var destinationPath = path.join(tempdir, filename);
-	    alert(destinationPath);
+	    console.log(destinationPath);
 	    // download the package to template folder
 	    fs.unlink(destinationPath, function(){
 	      pkg.pipe(fs.createWriteStream(destinationPath));

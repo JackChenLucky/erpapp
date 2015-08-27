@@ -1,5 +1,10 @@
 {
-  "name"    : "SCERP",
-  "version" : "0.1.0",
-  "main"    : "main.js"
+  "name": "SCERP",
+  "version": "0.1.0",
+  "main": "main.js",
+  "dependencies": {
+    "del": "^1.2.1",
+    "semver": "^5.0.1",
+    "request": "^2.61.0"
+  }
 }
