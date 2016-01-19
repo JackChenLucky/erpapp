@@ -46,8 +46,13 @@
     });
 
     var init = function(){
-    	//处理自动更新
-    	checkUpdate();
+    	try{
+    		//处理自动更新
+    		//checkUpdate();	
+    	}catch(err){
+    		console.log("处理自动更新失败:"+err);
+    	}
+    	
     	$('body').append("<webview id='foo' src='"+serviceurl+"' plugins nodeintegration disablewebsecurity style='position:absolute; width:100%; height:100%;;display:inline-block;' autosize='on' minwidth='576' minheight='432'></webview>");
     	//设置全局快捷键
     	setShortCut();
@@ -133,20 +138,26 @@
 	}
 	
 	var alertOnlineStatus = function() {
-        window.alert(navigator.onLine ? onlinefunc(): offlinefunc());
+        if(navigator.onLine){
+        	onlinefunc();
+        }else{
+        	offlinefunc()
+        };
     };
     
     //断线
     var offlinefunc = function() {
+    	console.log("网络已经断开！");
     	showToast({'stype':'error','message':'您的网络连接已断开,请检查网络！','timeOut':'-1'})
     }
 
     var onlinefunc = function(){
+    	console.log("网络已经连接！");
     	showToast({'stype':'info','message':'网络已重新连接,连接状态已经被重置,请您重新登录系统！','timeOut':'-1'});
     }
 
     var loadstop = function() {
-    	setpageFocus();
+    	//setpageFocus();
         $("#layer").addClass('animated fadeOutDown');
 		$("#loading").addClass('animated fadeOutDown');
 		setTimeout(function() {
@@ -169,14 +180,13 @@
     function setShortCut(){
     	//F5刷新
     	globalShortcut.register('F5', function() {
-    		
     		$('#loadingtext').text("数据加载中,请稍后...");
     		$("#loading").removeClass('animated fadeOutDown').addClass('animated fadeInUp').show();
 	       	document.getElementById("foo").reload();	
 	    })
 
     	//F8刷新
-    	globalShortcut.register('shift+F5', function() {
+    	globalShortcut.register('F6', function() {
     		if(confirm("您正在深度刷新系统，系统缓存将被清除，等待时间较长，是否继续？"))
     		{
     			$('#loadingtext').text("正在清除系统缓存，请稍后...");
@@ -192,12 +202,12 @@
 	      if (focusedWindow){
 	        focusedWindow.toggleDevTools();
 	      }
-	    })
+	    });
 
 	    //打开webview的调试工具
 	    globalShortcut.register('ctrl+alt+i', function() {
 	        document.getElementById("foo").openDevTools();
-	    })
+	    });
 
 	    //全屏
 	    globalShortcut.register('F11', function() {
@@ -205,7 +215,7 @@
 	      if (focusedWindow){
 	        focusedWindow.setFullScreen(!focusedWindow.isFullScreen());
 	      }
-	    })
+	    });
     }
 
     var updateCmpnyInfo = function(cmpny_code,cmpny_name,callback){
@@ -271,20 +281,22 @@
 	// 4、每次更新成功都需要
 
 	var  checkUpdate = function(){
-		console.log(setting.mainfestUrl);
-		request.get(setting.mainfestUrl,function(err, res, data){
-			var sdata = JSON.parse(data);
-			console.log("内核版本信息："+sdata.electron+'@'+setting.electron);
-			console.log("应用程序版本信息："+sdata.version+'@'+setting.version);
-			if(semver.gt(sdata.electron, setting.electron)){
-				alert("您的系统版本太低，无法进行自动更新。到官网重新下载安装！");
-				quitApp();
-			}else if(semver.gt(sdata.version, setting.version)){
-				if(confirm("发现新版本程序，是否更新程序？")){
-					updateAsarFile(sdata.asar_file,sdata.version);
+		if(setting.mainfestUrl!=null&&setting.mainfestUrl!=undefined&&setting.mainfestUrl!=''){
+			console.log(setting.mainfestUrl);
+			request.get(setting.mainfestUrl,function(err, res, data){
+				var sdata = JSON.parse(data);
+				console.log("内核版本信息："+sdata.electron+'@'+setting.electron);
+				console.log("应用程序版本信息："+sdata.version+'@'+setting.version);
+				if(semver.gt(sdata.electron, setting.electron)){
+					alert("您的系统版本太低，无法进行自动更新。到官网重新下载安装！");
+					quitApp();
+				}else if(semver.gt(sdata.version, setting.version)){
+					if(confirm("发现新版本程序，是否更新程序？")){
+						updateAsarFile(sdata.asar_file,sdata.version);
+					}
 				}
-			}
-		});
+			});
+		}
 	}
 
 	//应用程序更新

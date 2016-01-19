@@ -1,5 +1,5 @@
 {
-  "name": "SCERP",
+  "name": "scerp",
   "version": "0.1.0",
   "main": "main.js",
   "dependencies": {
